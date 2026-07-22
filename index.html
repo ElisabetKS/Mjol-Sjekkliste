@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sjekkliste-dashboard | Mjøl</title>
+<link href='https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap' rel='stylesheet'>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --green:#5B8DB8; --green-mid:#3A6D98; --green-light:#E8F0F8; --green-text:#2e5a09;
+  --copper:#5B8DB8; --copper-light:#E8F0F8;
+  --bg:#FBF9EF; --bg2:#F0EDD8; --white:#FFFFFF; --border:#DDD9D0;
+  --text:#1A1A1A; --muted:#777;
+  --amber-bg:#FFF3DC; --amber-text:#7a4e00;
+  --red-bg:#FCEBEB; --red-text:#8a1f1f;
+  --radius:8px; --radius-lg:12px;
+}
+body { font-family: 'Nunito', Arial, sans-serif; font-size: 14px; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+header { background: var(--green); padding: 0 2rem; display: flex; align-items: center; height: 56px; gap: 1.5rem; position: sticky; top: 0; z-index: 100; }
+.logo { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: .04em; white-space: nowrap; }
+.logo span { color: #a8c4d8; font-weight: 400; }
+.header-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.header-right label { color: #a8c4d8; font-size: 12px; }
+.header-right select { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); color: #fff; border-radius: 6px; padding: 5px 10px; font-size: 13px; cursor: pointer; }
+.header-right select option { background: var(--green); }
+
+.upload-strip { background: var(--green-mid); padding: .65rem 2rem; display: flex; align-items: center; gap: 1rem; }
+.upload-strip p { color: rgba(255,255,255,.8); font-size: 13px; }
+.upload-btn { display: inline-flex; align-items: center; gap: 7px; background: #fff; color: var(--green); border: none; border-radius: 6px; padding: 7px 16px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.upload-btn:hover { background: var(--blue-light); }
+#file-input { display: none; }
+
+.preview-wrap { background: var(--copper-light); border-bottom: 2px solid #c0d4e8; padding: .85rem 2rem; display: none; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
+.preview-wrap.show { display: flex; }
+.score-ring { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.ring-green { background: #EAF3DE; color: #2e5a09; border: 3px solid #639922; }
+.ring-yellow { background: var(--amber-bg); color: var(--amber-text); border: 3px solid #BA7517; }
+.ring-red { background: var(--red-bg); color: var(--red-text); border: 3px solid #A32D2D; }
+.preview-info h3 { font-size: 16px; font-weight: 700; color: var(--green); }
+.preview-info p { font-size: 12px; color: var(--copper); margin-top: 3px; }
+.preview-actions { display: flex; gap: 8px; margin-left: auto; }
+.btn-confirm { background: var(--green); color: #fff; border: none; border-radius: 6px; padding: 8px 20px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.btn-confirm:hover { background: var(--green-mid); }
+.btn-discard { background: none; border: 1px solid var(--copper); color: var(--copper); border-radius: 6px; padding: 8px 14px; font-size: 13px; cursor: pointer; }
+
+main { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1.5rem 4rem; }
+
+.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 1.5rem; }
+.stat { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.1rem; }
+.stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.stat-val { font-size: 28px; font-weight: 700; line-height: 1; }
+.sv-tot { color: var(--green); } .sv-g { color: #2e5a09; } .sv-y { color: var(--amber-text); } .sv-r { color: var(--red-text); }
+
+.tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 1.25rem; }
+.tab { padding: 9px 20px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+.tab:hover { color: var(--green); }
+.tab.active { color: var(--green); border-bottom-color: var(--green); }
+.tab-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--red-bg); color: var(--red-text); font-size: 10px; font-weight: 700; border-radius: 10px; padding: 1px 6px; margin-left: 6px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+.fbtn { display: inline-flex; align-items: center; gap: 6px; background: var(--white); border: 1px solid var(--border); border-radius: 6px; padding: 6px 13px; font-size: 13px; cursor: pointer; color: var(--text); }
+.fbtn:hover { background: var(--bg2); }
+.fbtn.active { background: var(--green); color: #fff; border-color: var(--green); }
+.fbtn.active .dot { background: #fff !important; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dg { background: #639922; } .dy { background: #BA7517; } .dr { background: #A32D2D; }
+.srch { flex: 1; min-width: 160px; border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; background: var(--white); }
+.srch:focus { outline: 2px solid var(--green); outline-offset: 1px; }
+
+.tbl-wrap { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+th { text-align: left; font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 9px 14px; border-bottom: 1px solid var(--border); background: #faf8f4; }
+td { padding: 11px 14px; border-bottom: 1px solid #f0ede6; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #faf8f4; }
+
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+.bg { background: #EAF3DE; color: #2e5a09; }
+.by { background: var(--amber-bg); color: var(--amber-text); }
+.br { background: var(--red-bg); color: var(--red-text); }
+.bdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.bg .bdot { background: #639922; } .by .bdot { background: #BA7517; } .br .bdot { background: #A32D2D; }
+.avvik-id { display: inline-block; background: var(--red-bg); color: var(--red-text); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; min-width: 36px; text-align: center; }
+
+.del-btn { background: none; border: none; cursor: pointer; color: #ccc; font-size: 15px; padding: 2px 6px; border-radius: 4px; }
+.del-btn:hover { color: var(--red-text); background: var(--red-bg); }
+
+.mangler-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 10px; }
+.mangler-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: .85rem 1rem; display: flex; align-items: center; gap: 10px; }
+.mangler-name { font-size: 13px; font-weight: 600; }
+.mangler-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+.empty { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+.empty-icon { font-size: 36px; margin-bottom: .75rem; opacity: .4; }
+.empty h3 { font-size: 15px; color: var(--text); margin-bottom: .35rem; }
+.empty p { font-size: 13px; line-height: 1.6; }
+
+.toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--green); color: #fff; padding: .75rem 1.25rem; border-radius: var(--radius); font-size: 13px; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,.2); transform: translateY(80px); opacity: 0; transition: all .3s; z-index: 999; }
+.toast.show { transform: translateY(0); opacity: 1; }
+
+@media (max-width: 640px) {
+  .stats { grid-template-columns: repeat(2,1fr); }
+  header, .upload-strip { padding-left: 1rem; padding-right: 1rem; }
+  main { padding: 1rem 1rem 4rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Mjøl <span>/ Sjekkliste</span></div>
+  <div class="header-right">
+    <label>Måned</label>
+    <select id="month-select" onchange="renderAll()"></select>
+  </div>
+</header>
+
+<div class="upload-strip">
+  <p>Last opp én utfylt sjekkliste om gangen</p>
+  <button class="upload-btn" onclick="document.getElementById('file-input').click()">↑ Last opp sjekkliste</button>
+  <input type="file" id="file-input" accept=".xlsx" onchange="handleFile(event)">
+  <button class="upload-btn" onclick="exportDashboard()" style="margin-left:auto;background:#2a5070;">↓ Eksporter til GitHub</button>
+</div>
+
+<div class="preview-wrap" id="preview-wrap">
+  <div class="score-ring" id="preview-ring"></div>
+  <div class="preview-info">
+    <h3 id="preview-name"></h3>
+    <p id="preview-meta"></p>
+  </div>
+  <div class="preview-actions">
+    <button class="btn-discard" onclick="discardPreview()">Forkast</button>
+    <button class="btn-confirm" onclick="confirmPreview()">Legg til oversikten →</button>
+  </div>
+</div>
+
+<main>
+  <div class="stats" id="stats"></div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('oversikt')">Oversikt</div>
+    <div class="tab" onclick="switchTab('mangler')">Mangler <span class="tab-badge" id="mangler-badge" style="display:none"></span></div>
+    <div class="tab" onclick="switchTab('avvik')">Avvik <span class="tab-badge" id="avvik-badge" style="display:none"></span></div>
+  </div>
+
+  <div class="tab-panel active" id="panel-oversikt">
+    <div class="toolbar">
+      <button class="fbtn active" onclick="setFilter('all')" id="f-all">Alle</button>
+      <button class="fbtn" onclick="setFilter('Grønt')" id="f-green"><span class="dot dg"></span>Grønt</button>
+      <button class="fbtn" onclick="setFilter('Gult')" id="f-yellow"><span class="dot dy"></span>Gult</button>
+      <button class="fbtn" onclick="setFilter('Rødt')" id="f-red"><span class="dot dr"></span>Rødt</button>
+      
+      <input class="srch" id="srch" placeholder="Søk utsalg…" oninput="renderOversikt()">
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th style="width:22%;cursor:pointer;user-select:none" onclick="setSort('utsalg')" id="th-utsalg">Utsalg <span id="si-utsalg"></span></th>
+        <th style="width:12%">Status</th>
+        <th style="width:10%;cursor:pointer;user-select:none" onclick="setSort('score')" id="th-score">Score <span id="si-score"></span></th>
+        <th style="width:10%;cursor:pointer;user-select:none" onclick="setSort('avvik')" id="th-avvik">Avvik <span id="si-avvik"></span></th>
+        <th style="width:14%">Uke</th>
+        <th style="width:18%">Gjennomfører</th>
+        <th style="width:10%">Besøk</th>
+        <th style="width:4%"></th>
+      </tr></thead>
+      <tbody id="oversikt-body"></tbody>
+    </table></div>
+  </div>
+
+  <div class="tab-panel" id="panel-mangler">
+    <div id="mangler-content"></div>
+  </div>
+
+  <div class="tab-panel" id="panel-avvik">
+    <div class="toolbar">
+      <input class="srch" id="avvik-srch" placeholder="Søk utsalg eller ID…" oninput="renderAvvik()">
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th style="width:16%">Utsalg</th>
+        <th style="width:8%">ID</th>
+        <th style="width:38%">Spørsmål</th>
+        <th style="width:26%">Kommentar</th>
+        <th style="width:12%">Uke</th>
+      </tr></thead>
+      <tbody id="avvik-body"></tbody>
+    </table></div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const REGIONER = {
+  "Mjøl Oslo": ["Sagene","Tøyen","Bislett","Homansbyen","Carl Berner"]
+};
+const ALLE_UTSALG = Object.values(REGIONER).flat();
+function getRegion(utsalg) {
+  for (const [reg, list] of Object.entries(REGIONER)) {
+    if (list.includes(utsalg)) return reg;
+  }
+  return "Annet";
+}
+
+let entries = [];
+try { entries = JSON.parse(localStorage.getItem("mjol_dash") || "[]"); } catch(e) { entries = []; }
+let pending = null;
+let activeFilter = "all";
+
+// ── MÅNEDVELGER ──────────────────────────────────────────────────────────
+function initMonths() {
+  const sel = document.getElementById("month-select");
+  // Hele 2026
+  const yearOpt = document.createElement("option");
+  yearOpt.value = "2026";
+  yearOpt.textContent = "Hele 2026";
+  sel.appendChild(yearOpt);
+  // Skillelinje
+  const sep = document.createElement("option");
+  sep.disabled = true;
+  sep.textContent = "──────────────";
+  sel.appendChild(sep);
+  // Måneder
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const val = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+    const lbl = d.toLocaleDateString("nb-NO", {month:"long",year:"numeric"});
+    const o = document.createElement("option");
+    o.value = val;
+    o.textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
+    sel.appendChild(o);
+  }
+}
+function selectedMonth() { return document.getElementById("month-select").value; }
+function entriesForMonth() {
+  const m = selectedMonth();
+  if (m === "2026") return entries.filter(e => e.month && e.month.startsWith("2026"));
+  return entries.filter(e => e.month === m);
+}
+
+// ── LES XLSX ─────────────────────────────────────────────────────────────
+function handleFile(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  evt.target.value = "";
+
+  const reader = new FileReader();
+  reader.onerror = () => alert("Kunne ikke lese filen.");
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {
+        type: "array",
+        cellDates: true,   // konverter datoer automatisk
+        cellNF: false,
+        cellText: false
+      });
+
+      const ws = wb.Sheets["Sjekkliste"];
+      if (!ws) { alert("Fant ikke arket «Sjekkliste». Sjekk at du bruker riktig mal."); return; }
+
+      // Hjelper: hent verdi fra celle
+      const cv = (ref) => {
+        const c = ws[ref];
+        if (!c) return "";
+        if (c.t === "d") {
+          // Datoobjekt
+          const d = c.v;
+          return String(d.getDate()).padStart(2,"0") + "." +
+                 String(d.getMonth()+1).padStart(2,"0") + "." + d.getFullYear();
+        }
+        return c.v !== undefined ? String(c.v).trim() : "";
+      };
+
+      const utsalg   = cv("C3");
+      const dato     = cv("C4");
+      const gjennomf = cv("C5");
+      const planlagt = cv("C7");
+
+      if (!utsalg) { alert("Utsalg-feltet (celle C3) er tomt. Fyll inn og last opp igjen."); return; }
+
+      // Beregn score direkte fra svarradene (ignorer formler i E9)
+      // Kategori-headere har tom Svar-kolonne og tom Maks — skip dem
+      let oppnadd = 0, mulig = 0;
+      const avvik = [];
+      const range = XLSX.utils.decode_range(ws["!ref"] || "A1:H120");
+
+      for (let r = 10; r <= range.e.r; r++) {
+        const idCell   = ws[XLSX.utils.encode_cell({r, c:0})];
+        const spCell   = ws[XLSX.utils.encode_cell({r, c:1})];
+        const svarCell = ws[XLSX.utils.encode_cell({r, c:2})];
+        const maksCell = ws[XLSX.utils.encode_cell({r, c:3})];
+        const komCell  = ws[XLSX.utils.encode_cell({r, c:5})];
+
+        const id   = idCell   ? String(idCell.v   || "").trim() : "";
+        const svar = svarCell ? String(svarCell.v || "").trim() : "";
+        const maks = maksCell ? parseFloat(maksCell.v) : NaN;
+        const sp   = spCell   ? String(spCell.v   || "").trim() : "";
+        const kom  = komCell  ? String(komCell.v  || "").trim() : "";
+
+        // Skip kategori-headere (maks er NaN og id er tekst uten tall)
+        if (isNaN(maks) || !svar) continue;
+        if (svar === "Ikke vurdert") continue;
+
+        mulig += maks;
+        if (svar === "Godkjent") oppnadd += maks;
+        if (svar === "Avvik") avvik.push({ id, sp: sp.replace(/\s*\[.*?\]/g,""), kom });
+      }
+
+      if (mulig === 0) { alert("Ingen svar registrert i filen. Fyll ut sjekklisten og last opp igjen."); return; }
+
+      const score = (oppnadd / mulig) * 100;
+      const status = score >= 80 ? "Grønt" : score >= 60 ? "Gult" : "Rødt";
+
+      // Måned fra dato
+      let month = selectedMonth();
+      if (dato && dato.includes(".")) {
+        const p = dato.split(".");
+        if (p.length === 3) month = p[2] + "-" + p[1].padStart(2,"0");
+      }
+
+      pending = { utsalg, dato, gjennomforer: gjennomf, planlagt, score, status, avvikCount: avvik.length, avvik, month };
+      showPreview(pending);
+
+    } catch(err) {
+      alert("Feil ved lesing: " + err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// Beregn ISO-ukenummer fra dato-streng DD.MM.YYYY
+// Kort månedsnavn fra dato-streng DD.MM.YYYY
+function getMonth(datoStr) {
+  if (!datoStr || !datoStr.includes(".")) return "";
+  const p = datoStr.split(".");
+  if (p.length !== 3) return "";
+  const d = new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]));
+  if (isNaN(d)) return "";
+  const mnd = d.toLocaleDateString("nb-NO", {month:"short"});
+  return " · " + mnd.charAt(0).toUpperCase() + mnd.slice(1);
+}
+
+function getWeek(datoStr) {
+  if (!datoStr || !datoStr.includes(".")) return "—";
+  const p = datoStr.split(".");
+  if (p.length !== 3) return "—";
+  const d = new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]));
+  if (isNaN(d)) return "—";
+  const thursday = new Date(d);
+  thursday.setDate(d.getDate() + (4 - (d.getDay()||7)));
+  const yearStart = new Date(thursday.getFullYear(), 0, 1);
+  return "Uke " + Math.ceil(((thursday - yearStart) / 86400000 + 1) / 7);
+}
+
+function showPreview(e) {
+  document.getElementById("preview-name").textContent = e.utsalg;
+  document.getElementById("preview-meta").textContent =
+    e.score.toFixed(1) + "% · " + e.avvikCount + " avvik · " + getWeek(e.dato) + " · " + (e.gjennomforer||"—");
+  const ring = document.getElementById("preview-ring");
+  ring.textContent = Math.round(e.score) + "%";
+  ring.className = "score-ring " + (e.status==="Grønt"?"ring-green":e.status==="Gult"?"ring-yellow":"ring-red");
+  document.getElementById("preview-wrap").classList.add("show");
+}
+
+function discardPreview() {
+  pending = null;
+  document.getElementById("preview-wrap").classList.remove("show");
+}
+
+function confirmPreview() {
+  if (!pending) return;
+  entries = entries.filter(e => !(e.utsalg===pending.utsalg && e.month===pending.month));
+  entries.push(pending);
+  try { localStorage.setItem("mjol_dash", JSON.stringify(entries)); } catch(_) {}
+  // Juster månedvelger til riktig måned
+  const sel = document.getElementById("month-select");
+  for (const o of sel.options) { if (o.value === pending.month) { sel.value = pending.month; break; } }
+  discardPreview();
+  pending = null;
+  renderAll();
+  showToast("Lagt til: " + entries[entries.length-1].utsalg);
+}
+
+// ── SLETT ────────────────────────────────────────────────────────────────
+function deleteEntry(utsalg, month) {
+  if (!confirm("Fjerne " + utsalg + " fra oversikten?")) return;
+  entries = entries.filter(e => !(e.utsalg===utsalg && e.month===month));
+  try { localStorage.setItem("mjol_dash", JSON.stringify(entries)); } catch(_) {}
+  renderAll();
+}
+
+// ── TOAST ────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2800);
+}
+
+// ── TABS ─────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach((t,i) => {
+    t.classList.toggle("active", ["oversikt","mangler","avvik"][i] === name);
+  });
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.getElementById("panel-" + name).classList.add("active");
+}
+
+// ── FILTER ───────────────────────────────────────────────────────────────
+let sortBy = "utsalg";
+let sortDir = 1; // 1 = stigende, -1 = synkende
+
+function setSort(col) {
+  if (sortBy === col) { sortDir *= -1; }
+  else { sortBy = col; sortDir = col === "score" ? -1 : 1; }
+  ["utsalg","score","avvik"].forEach(c => {
+    document.getElementById("si-"+c).textContent = "";
+  });
+  document.getElementById("si-"+col).textContent = sortDir === 1 ? " ↑" : " ↓";
+  renderOversikt();
+}
+
+let activeRegion = "all";
+
+function setRegion(r) {
+  activeRegion = r;
+  renderOversikt();
+}
+
+function setFilter(f) {
+  activeFilter = f;
+  [["all","f-all"],["Grønt","f-green"],["Gult","f-yellow"],["Rødt","f-red"]].forEach(([v,id]) => {
+    document.getElementById(id).classList.toggle("active", v===f);
+  });
+  renderOversikt();
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function renderAll() { renderStats(); renderOversikt(); renderMangler(); renderAvvik(); }
+
+function renderStats() {
+  const list = entriesForMonth();
+  const g=list.filter(e=>e.status==="Grønt").length;
+  const y=list.filter(e=>e.status==="Gult").length;
+  const r=list.filter(e=>e.status==="Rødt").length;
+  document.getElementById("stats").innerHTML =
+    `<div class="stat"><p class="stat-label">Innleverte</p><p class="stat-val sv-tot">${list.length}</p></div>
+     <div class="stat"><p class="stat-label">Grønt</p><p class="stat-val sv-g">${g}</p></div>
+     <div class="stat"><p class="stat-label">Gult</p><p class="stat-val sv-y">${y}</p></div>
+     <div class="stat"><p class="stat-label">Rødt</p><p class="stat-val sv-r">${r}</p></div>`;
+}
+
+function renderOversikt() {
+  const q = document.getElementById("srch").value.toLowerCase();
+  let list = entriesForMonth();
+  if (activeFilter !== "all") list = list.filter(e => e.status===activeFilter);
+  if (activeRegion !== "all") list = list.filter(e => getRegion(e.utsalg)===activeRegion);
+  if (q) list = list.filter(e => e.utsalg.toLowerCase().includes(q));
+  if (sortBy === "score") list.sort((a,b) => (b.score - a.score) * sortDir * -1);
+  else if (sortBy === "avvik") list.sort((a,b) => (b.avvikCount - a.avvikCount) * sortDir * -1);
+  else list.sort((a,b) => a.utsalg.localeCompare(b.utsalg,"no") * sortDir);
+
+  const body = document.getElementById("oversikt-body");
+  if (!list.length) {
+    body.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="empty-icon">📋</div><h3>Ingen sjekklister ennå</h3><p>Last opp en utfylt sjekkliste for å se den her.</p></div></td></tr>`;
+    return;
+  }
+
+  const rowHtml = (e) => {
+    const bc = e.status==="Grønt"?"bg":e.status==="Gult"?"by":"br";
+    const sc = e.status==="Grønt"?"#2e5a09":e.status==="Gult"?"#7a4e00":"#8a1f1f";
+    return `<tr>
+      <td style="font-weight:600">${e.utsalg}</td>
+      <td><span class="badge ${bc}"><span class="bdot"></span>${e.status}</span></td>
+      <td style="font-weight:700;color:${sc}">${e.score.toFixed(1)}%</td>
+      <td style="color:${e.avvikCount>0?"#8a1f1f":"#777"};font-weight:${e.avvikCount>0?700:400}">${e.avvikCount>0?e.avvikCount+" avvik":"—"}</td>
+      <td style="color:#777;font-size:13px">${getWeek(e.dato)}${getMonth(e.dato)}</td>
+      <td style="color:#777;font-size:13px">${e.gjennomforer||"—"}</td>
+      <td style="font-size:12px;color:#999">${e.planlagt||"—"}</td>
+      <td><button class="del-btn" onclick="deleteEntry('${e.utsalg}','${e.month}')" title="Fjern">✕</button></td>
+    </tr>`;
+  };
+
+  const regionHeader = (reg, count) =>
+    `<tr><td colspan="8" style="background:#E8F0F8;font-size:11px;font-weight:700;color:#1a4f7a;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;">${reg}</td></tr>`;
+
+  let html = "";
+  const regioner = activeRegion !== "all" ? [activeRegion] : Object.keys(REGIONER);
+  for (const reg of regioner) {
+    const rows = list.filter(e => getRegion(e.utsalg) === reg);
+    if (!rows.length) continue;
+    html += regionHeader(reg, rows.length) + rows.map(rowHtml).join("");
+  }
+  // Utsalg som ikke matcher noen region
+  const andre = list.filter(e => getRegion(e.utsalg) === "Annet");
+  if (andre.length) {
+    html += `<tr><td colspan="8" style="background:#f0ede6;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;">Annet</td></tr>`;
+    html += andre.map(rowHtml).join("");
+  }
+  body.innerHTML = html;
+}
+
+function renderMangler() {
+  const m = selectedMonth();
+  const done = new Set(entriesForMonth().map(e=>e.utsalg));
+  const mangler = ALLE_UTSALG.filter(u => !done.has(u));
+  const badge = document.getElementById("mangler-badge");
+  badge.textContent = mangler.length;
+  badge.style.display = mangler.length ? "inline-flex" : "none";
+
+  const periodLabel = m === "2026" ? "i 2026" : "denne måneden";
+  const el = document.getElementById("mangler-content");
+  if (!mangler.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><h3>Alle utsalg har levert</h3><p>Alle utsalg har sjekkliste ${periodLabel}.</p></div>`;
+    return;
+  }
+
+  let html = `<p style="font-size:13px;color:var(--muted);margin-bottom:1rem">Følgende utsalg mangler sjekkliste ${periodLabel}.</p>`;
+  for (const [reg, utsalg] of Object.entries(REGIONER)) {
+    const regMangler = utsalg.filter(u => mangler.includes(u));
+    if (!regMangler.length) continue;
+    html += `<p style="font-size:11px;font-weight:700;color:#1a4f7a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;margin-top:1rem">${reg}</p>`;
+    html += `<div class="mangler-grid">${regMangler.map(u=>`
+      <div class="mangler-card">
+        <span style="font-size:20px;opacity:.4">🏪</span>
+        <div><p class="mangler-name">${u}</p><p class="mangler-sub">Ikke levert</p></div>
+      </div>`).join("")}</div>`;
+  }
+  el.innerHTML = html;
+}
+
+function renderAvvik() {
+  const q = document.getElementById("avvik-srch").value.toLowerCase();
+  const all = [];
+  entriesForMonth().forEach(e => e.avvik.forEach(a => all.push({...a, utsalg:e.utsalg, dato:e.dato})));
+  const filtered = q ? all.filter(a => a.utsalg.toLowerCase().includes(q)||a.id.toLowerCase().includes(q)||a.sp.toLowerCase().includes(q)) : all;
+
+  const badge = document.getElementById("avvik-badge");
+  badge.textContent = all.length;
+  badge.style.display = all.length ? "inline-flex" : "none";
+
+  const body = document.getElementById("avvik-body");
+  if (!filtered.length) {
+    body.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="empty-icon">👍</div><h3>${all.length===0?"Ingen avvik registrert":"Ingen treff"}</h3><p>${all.length===0?"Ingen avvik på tvers av innleverte sjekklister.":"Prøv et annet søkeord."}</p></div></td></tr>`;
+    return;
+  }
+  body.innerHTML = filtered.map(a=>`<tr>
+    <td style="font-weight:600">${a.utsalg}</td>
+    <td><span class="avvik-id">${a.id}</span></td>
+    <td style="white-space:normal;font-size:13px;line-height:1.4">${a.sp}</td>
+    <td style="white-space:normal;font-size:13px;color:var(--muted);line-height:1.4">${a.kom||"—"}</td>
+    <td style="font-size:12px;color:var(--muted)">${getWeek(a.dato)}</td>
+  </tr>`).join("");
+}
+
+// ── EKSPORTER MED DATA INNBAKT ────────────────────────────────────────────
+function exportDashboard() {
+  if (!entries.length) { alert("Ingen data å eksportere ennå."); return; }
+  // Les inn denne HTML-filen og erstatt entries-array med gjeldende data
+  const html = document.documentElement.outerHTML;
+  const marker = 'let entries = [];';
+  const replacement = `let entries = ${JSON.stringify(entries)};`;
+  const exported = html.replace(
+    /let entries = (\[\]|\[[\s\S]*?\]);(\s*try \{ entries = JSON\.parse.*?\} catch\(e\) \{ entries = \[\]; \})?/,
+    replacement
+  );
+  const blob = new Blob([exported], { type: "text/html;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "index.html";
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("Fil lastet ned — last opp index.html til GitHub");
+}
+
+initMonths();
+renderAll();
+</script>
+</body>
+</html>
