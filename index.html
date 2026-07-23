@@ -178,7 +178,7 @@ tr:hover td { background: #faf8f4; }
       <td style="color:#777;font-size:13px">Uke 27 · Jul</td>
       <td style="color:#777;font-size:13px">Jan Henrik</td>
       <td style="font-size:12px;color:#999">Planlagt</td>
-      <td><button class="del-btn" onclick="deleteEntry('Sagene','2026-07')" title="Fjern">✕</button></td>
+      <td><button class="del-btn" onclick="deleteEntry('Sagene','2026-07')" title="Fjern" style="display:inline-block">✕</button></td>
     </tr></tbody>
     </table></div>
   </div>
@@ -510,7 +510,7 @@ function renderOversikt() {
       <td style="color:#777;font-size:13px">${getWeek(e.dato)}${getMonth(e.dato)}</td>
       <td style="color:#777;font-size:13px">${e.gjennomforer||"—"}</td>
       <td style="font-size:12px;color:#999">${e.planlagt||"—"}</td>
-      <td><button class="del-btn" onclick="deleteEntry('${e.utsalg}','${e.month}')" title="Fjern">✕</button></td>
+      <td><button class="del-btn" onclick="deleteEntry('${e.utsalg}','${e.month}')" title="Fjern" style="display:${isAdmin?'inline-block':'none'}">✕</button></td>
     </tr>`;
   };
 
@@ -604,6 +604,11 @@ function exportDashboard() {
     'id="export-btn" style="margin-left:auto;background:#2a5070;display:none;"',
     'id="export-btn" style="margin-left:auto;background:#2a5070;display:none;"'
   );
+  // Erstatt isAdmin med false i eksportert fil så slett-knapper skjules
+  exported = exported.replace(
+    'const isAdmin = new URLSearchParams(window.location.search).get(\'admin\') === \'true\';',
+    'const isAdmin = new URLSearchParams(window.location.search).get(\'admin\') === \'true\';'
+  );
   const blob = new Blob([exported], { type: "text/html;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -612,8 +617,10 @@ function exportDashboard() {
   showToast("Fil lastet ned — last opp index.html til GitHub");
 }
 
+const isAdmin = new URLSearchParams(window.location.search).get('admin') === 'true';
+
 // Vis admin-funksjoner kun med ?admin=true i URL
-if (new URLSearchParams(window.location.search).get('admin') === 'true') {
+if (isAdmin) {
   document.getElementById('upload-strip').style.display = 'flex';
   document.getElementById('export-btn').style.display = 'inline-flex';
 }
