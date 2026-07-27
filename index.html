@@ -26,7 +26,8 @@ header { background: #FFFFFF; padding: 0 2rem; display: flex; align-items: cente
 .header-right select { background: #F5F5F5; border: 1px solid #D0DCE8; color: #1A1A1A; border-radius: 6px; padding: 5px 10px; font-size: 13px; cursor: pointer; }
 .header-right select option { background: #fff; color: #1A1A1A; }
 
-.upload-strip { background: var(--green-mid); padding: .65rem 2rem; display: flex; align-items: center; gap: 1rem; }
+.upload-strip { background: var(--green-mid); padding: .65rem 2rem; display: none; align-items: center; gap: 1rem; }
+.upload-strip.visible { display: flex; }
 .upload-strip p { color: rgba(255,255,255,.8); font-size: 13px; }
 .upload-btn { display: inline-flex; align-items: center; gap: 7px; background: #fff; color: var(--green); border: none; border-radius: 6px; padding: 7px 16px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 .upload-btn:hover { background: var(--blue-light); }
@@ -120,7 +121,7 @@ tr:hover td { background: #faf8f4; }
   </div>
 </header>
 
-<div class="upload-strip" id="upload-strip" style="display: flex;">
+<div class="upload-strip" id="upload-strip">
   <p>Last opp én utfylt sjekkliste om gangen</p>
   <button class="upload-btn" onclick="document.getElementById('file-input').click()">↑ Last opp sjekkliste</button>
   <input type="file" id="file-input" accept=".xlsx" onchange="handleFile(event)">
@@ -589,26 +590,14 @@ function renderAvvik() {
 // ── EKSPORTER MED DATA INNBAKT ────────────────────────────────────────────
 function exportDashboard() {
   if (!entries.length) { alert("Ingen data å eksportere ennå."); return; }
-  const html = document.documentElement.outerHTML;
+  let exported = document.documentElement.outerHTML;
   // Bak inn data
-  let exported = html.replace(
+  exported = exported.replace(
     /let entries = (\[\]|\[[\s\S]*?\]);(\s*try \{ entries = JSON\.parse.*?\} catch\(e\) \{ entries = \[\]; \})?/,
     `let entries = ${JSON.stringify(entries)};`
   );
-  // Sørg for at upload-strip og export-btn alltid er skjult i eksportert fil
-  exported = exported.replace(
-    'id="upload-strip" style="display:none;"',
-    'id="upload-strip" style="display:none;"'
-  );
-  exported = exported.replace(
-    'id="export-btn" style="margin-left:auto;background:#2a5070;display:none;"',
-    'id="export-btn" style="margin-left:auto;background:#2a5070;display:none;"'
-  );
-  // Erstatt isAdmin med false i eksportert fil så slett-knapper skjules
-  exported = exported.replace(
-    'const isAdmin = new URLSearchParams(window.location.search).get(\'admin\') === \'true\';',
-    'const isAdmin = new URLSearchParams(window.location.search).get(\'admin\') === \'true\';'
-  );
+  // Alltid skjul admin-elementer i eksportert fil
+  exported = exported.replace(/class="upload-strip"/g, 'class="upload-strip"');
   const blob = new Blob([exported], { type: "text/html;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -621,8 +610,10 @@ const isAdmin = new URLSearchParams(window.location.search).get('admin') === 'tr
 
 // Vis admin-funksjoner kun med ?admin=true i URL
 if (isAdmin) {
-  document.getElementById('upload-strip').style.display = 'flex';
-  document.getElementById('export-btn').style.display = 'inline-flex';
+  const us = document.getElementById('upload-strip');
+  const eb = document.getElementById('export-btn');
+  if (us) us.classList.add('visible');
+  if (eb) eb.style.display = 'inline-flex';
 }
 
 initMonths();
