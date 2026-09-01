@@ -130,10 +130,10 @@ tr:hover td { background: #faf8f4; }
 </div>
 
 <div class="preview-wrap" id="preview-wrap">
-  <div class="score-ring ring-green" id="preview-ring">97%</div>
+  <div class="score-ring" id="preview-ring"></div>
   <div class="preview-info">
-    <h3 id="preview-name">Tøyen</h3>
-    <p id="preview-meta">97.5% · 3 avvik · Uke 34 · Sofie</p>
+    <h3 id="preview-name"></h3>
+    <p id="preview-meta"></p>
   </div>
   <div class="preview-actions">
     <button class="btn-discard" onclick="discardPreview()">Forkast</button>
@@ -148,7 +148,7 @@ tr:hover td { background: #faf8f4; }
      <div class="stat"><p class="stat-label">Rødt</p><p class="stat-val sv-r">0</p></div></div>
   <div class="tabs">
     <div class="tab active" onclick="switchTab('oversikt')">Oversikt</div>
-    <div class="tab" onclick="switchTab('mangler')">Mangler <span class="tab-badge" id="mangler-badge" style="display: none;">0</span></div>
+    <div class="tab" onclick="switchTab('mangler')">Mangler <span class="tab-badge" id="mangler-badge" style="display:none">0</span></div>
     <div class="tab" onclick="switchTab('avvik')">Avvik <span class="tab-badge" id="avvik-badge" style="display: inline-flex;">61</span></div>
   </div>
 
@@ -200,6 +200,15 @@ tr:hover td { background: #faf8f4; }
       <td style="font-size:12px;color:#999">Uanmeldt</td>
       <td><button class="del-btn" onclick="deleteEntry('Homansbyen','2026-08')" title="Fjern" style="display:inline-block">✕</button></td>
     </tr><tr>
+      <td style="font-weight:600">Kveitmjøl</td>
+      <td><span class="badge by"><span class="bdot"></span>Gult</span></td>
+      <td style="font-weight:700;color:#7a4e00">68.1%</td>
+      <td style="color:#8a1f1f;font-weight:700">21 avvik</td>
+      <td style="color:#777;font-size:13px">Uke 34 · Aug</td>
+      <td style="color:#777;font-size:13px">Sofie</td>
+      <td style="font-size:12px;color:#999">uanmeldt</td>
+      <td><button class="del-btn" onclick="deleteEntry('Kveitmjøl','2026-08')" title="Fjern" style="display:inline-block">✕</button></td>
+    </tr><tr>
       <td style="font-weight:600">Sagene</td>
       <td><span class="badge by"><span class="bdot"></span>Gult</span></td>
       <td style="font-weight:700;color:#7a4e00">79.5%</td>
@@ -217,21 +226,12 @@ tr:hover td { background: #faf8f4; }
       <td style="color:#777;font-size:13px">Sofie</td>
       <td style="font-size:12px;color:#999">Uanmeldt</td>
       <td><button class="del-btn" onclick="deleteEntry('Tøyen','2026-08')" title="Fjern" style="display:inline-block">✕</button></td>
-    </tr><tr><td colspan="8" style="background:#f0ede6;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;">Annet</td></tr><tr>
-      <td style="font-weight:600">Kveitmjøl</td>
-      <td><span class="badge by"><span class="bdot"></span>Gult</span></td>
-      <td style="font-weight:700;color:#7a4e00">68.1%</td>
-      <td style="color:#8a1f1f;font-weight:700">21 avvik</td>
-      <td style="color:#777;font-size:13px">Uke 34 · Aug</td>
-      <td style="color:#777;font-size:13px">Sofie</td>
-      <td style="font-size:12px;color:#999">uanmeldt</td>
-      <td><button class="del-btn" onclick="deleteEntry('Kveitmjøl','2026-08')" title="Fjern" style="display:inline-block">✕</button></td>
     </tr></tbody>
     </table></div>
   </div>
 
   <div class="tab-panel" id="panel-mangler">
-    <div id="mangler-content"><div class="empty"><div class="empty-icon">✅</div><h3>Alle utsalg har levert</h3><p>Alle utsalg har sjekkliste denne måneden.</p></div></div>
+    <div id="mangler-content"><div class="empty"><div class="empty-icon">✅</div><h3>Alle utsalg har levert</h3><p>Alle utsalg har sjekkliste i 2026.</p></div></div>
   </div>
 
   <div class="tab-panel" id="panel-avvik">
@@ -617,11 +617,11 @@ tr:hover td { background: #faf8f4; }
   </div>
 </main>
 
-<div class="toast" id="toast">Lagt til: Tøyen</div>
+<div class="toast" id="toast"></div>
 
 <script>
 const REGIONER = {
-  "Mjøl Oslo": ["Sagene","Tøyen","Bislett","Homansbyen","Carl Berner"]
+  "Mjøl Oslo": ["Sagene","Tøyen","Bislett","Homansbyen","Carl Berner","Kveitmjøl"]
 };
 const ALLE_UTSALG = Object.values(REGIONER).flat();
 function getRegion(utsalg) {
@@ -989,10 +989,17 @@ function exportDashboard() {
   if (!entries.length) { alert("Ingen data å eksportere ennå."); return; }
   let exported = document.documentElement.outerHTML;
   const entriesJson = JSON.stringify(entries);
-  exported = exported.replace(
-    /let entries = (\[\]|\[\s\S\]*?\]);/,
-    'let entries = ' + entriesJson + ';'
-  );
+  // Bruk split/join for å erstatte entries-variabelen - mer pålitelig enn regex
+  const entriesMarker = "let entries = [{"utsalg":"Bislett","dato":"18.08.2026","gjennomforer":"Sofie","planlagt":"Uanmeldt","score":90.75630252100841,"status":"Grønt","avvikCount":7,"avvik":[{"id":"B3","sp":"Personaltoalett og garderobe er ryddig og rene.","kom":"Mangler lokk på toalettet"},{"id":"RV2","sp":"Rutinelister er utfylt, og tatt vare på 12 uker tilbake i tid.","kom":"Rutinelister blir ikke alltid fulgt opp, leder sliter med å få ansatte til å gjennomføre"},{"id":"RV3","sp":"De ansatte vet hvor de finner HMS opplæringen og opplæring er gitt alle ansatte.","kom":"Mangler en del opplæring på både ansatte og leder"},{"id":"RV9","sp":"Førstehjelpsskriner er tilgjengelig og med riktig innhold.","kom":"Problemer med bestilling, men det er tatt videre"},{"id":"KK1","sp":"Uniformen er brukt riktig (Mjøl t-skjorte, mørke bukser, tette sko).","kom":"Ansatte har ikke t-skjorter"},{"id":"KK3","sp":"Det er behagelig temperatur i utsalget og de ansatte opplært i ventilasjonsanlegget.","kom":"Solen steker rett inn i lolaket og mangel på ari-con"},{"id":"KK11","sp":"Avdelingen har god kjennskap til aktiviteter og arrangementer i nærområdet/senteret.","kom":""}],"month":"2026-08"},{"utsalg":"Carl Berner","dato":"18.08.2026","gjennomforer":"Sofie","planlagt":"Uanmeldt","score":85.96491228070175,"status":"Grønt","avvikCount":8,"avvik":[{"id":"U1","sp":"Det er rent og fritt for søppel utenfor (snus/sneiper tatt bort).","kom":"Røyk rundt sitteområdet"},{"id":"RV2","sp":"Rutinelister er utfylt, og tatt vare på 12 uker tilbake i tid.","kom":"Rutinelister blir ikke tatt vare på (laminert og viskes ut hver uke). Ukesrutiner kan følges litt bedre opp"},{"id":"RV3","sp":"De ansatte vet hvor de finner HMS opplæringen og opplæring er gitt alle ansatte.","kom":"Mangel på strukturell opplæring, HMS info, kaffekurs"},{"id":"RV4","sp":"Temperatur på kjøl er tatt daglig ihht rutiner.","kom":"Mangel på liste og ikke fylt ut hvor det er liste"},{"id":"RV7","sp":"Behov for vedlikehold er meldt til regionleder.","kom":"Ikke meldt"},{"id":"RV9","sp":"Førstehjelpsskriner er tilgjengelig og med riktig innhold.","kom":"Mangler, er meldt til leder"},{"id":"KK10","sp":"Sesongriktige produkter er fremhevet og markedsført i henhold til gjeldende periode.","kom":""},{"id":"KK11","sp":"Avdelingen har god kjennskap til aktiviteter og arrangementer i nærområdet/senteret.","kom":""}],"month":"2026-08"},{"utsalg":"Homansbyen","dato":"18.08.2026","gjennomforer":"Sofie","planlagt":"Uanmeldt","score":86.66666666666667,"status":"Grønt","avvikCount":8,"avvik":[{"id":"B5","sp":"Det er ikke spor av skadedyr.","kom":"En del maur og andre smådyr"},{"id":"RV2","sp":"Rutinelister er utfylt, og tatt vare på 12 uker tilbake i tid.","kom":"Rutinelister blir ikke alltid fulgt opp, leder sliter med å få ansatte til å gjennomføre"},{"id":"RV3","sp":"De ansatte vet hvor de finner HMS opplæringen og opplæring er gitt alle ansatte.","kom":"Mangler en del opplæring på både ansatte og leder"},{"id":"RV4","sp":"Temperatur på kjøl er tatt daglig ihht rutiner.","kom":"Ikke alltid fulgt opp"},{"id":"RV9","sp":"Førstehjelpsskriner er tilgjengelig og med riktig innhold.","kom":"Problemer med bestilling, men det er tatt videre"},{"id":"KK1","sp":"Uniformen er brukt riktig (Mjøl t-skjorte, mørke bukser, tette sko).","kom":"Ansatte har ikke t-skjorter"},{"id":"KK3","sp":"Det er behagelig temperatur i utsalget og de ansatte opplært i ventilasjonsanlegget.","kom":"Ikke tilstrekkelig ventilasjon eller kjøling, uutholdelig varme om sommeren (ansatte har grått og kastet opp på jobb)"},{"id":"KK11","sp":"Avdelingen har god kjennskap til aktiviteter og arrangementer i nærområdet/senteret.","kom":""}],"month":"2026-08"},{"utsalg":"Kveitmjøl","dato":"18.08.2026","gjennomforer":"Sofie","planlagt":"uanmeldt","score":68.10344827586206,"status":"Gult","avvikCount":21,"avvik":[{"id":"A3","sp":"De ansatte på jobb har fått tilstrekkelig opplæring.","kom":"Spesielt lite kaffeopplæring, og div. Annet de er usikker på"},{"id":"I2","sp":"Det er ikke støv i utsalget.","kom":"Støvet hyller"},{"id":"I7","sp":"Søppeldunkene fremstår pene og rene.","kom":""},{"id":"I9","sp":"Bestikk og glass ved vannstasjonen er rene og satt opp riktig.","kom":"Trenger puss/ser ikke alltid rene ut"},{"id":"D1","sp":"Disken bugner / det er godt varetrykk (også utpå dagen).","kom":"Tomt for boller"},{"id":"D2","sp":"Varepresentasjonen i disken er innbydende.","kom":"pga mangel på boller"},{"id":"K6","sp":"Kaffemaskinen er rengjort i henhold til rutiner - inkl. steamerarm og filter.","kom":"Ofte skitten"},{"id":"R1","sp":"Det er rent oppi skuffene og skap.","kom":"Ikke rent"},{"id":"DD1","sp":"Delivarehyllen og delivarer er tørket av for støv.","kom":"Støvete"},{"id":"B1","sp":"Bakrommet er ryddig og rent.","kom":"Uttrykk for at det er mye unødvendige ting, ikke rydding og vurderes som skittent"},{"id":"B2","sp":"Kjøl/frys er ryddig og rene.","kom":"Burde vært vasket"},{"id":"B4","sp":"Varelageret er under kontroll og på fornuftig nivå.","kom":"Mye varer"},{"id":"RV2","sp":"Rutinelister er utfylt, og tatt vare på 12 uker tilbake i tid.","kom":"Listene blir ikke fulgt godt nok"},{"id":"RV3","sp":"De ansatte vet hvor de finner HMS opplæringen og opplæring er gitt alle ansatte.","kom":"Mangel på tilstrekkelig opplæring"},{"id":"RV4","sp":"Temperatur på kjøl er tatt daglig ihht rutiner.","kom":"Ansatte vet ikke om temp.liste og finner det ikke"},{"id":"RV8","sp":"Filter på kjøledisk og ventilasjon er støvsugd.","kom":"Ikke støvsugd på en god stund"},{"id":"RV9","sp":"Førstehjelpsskriner er tilgjengelig og med riktig innhold.","kom":"Mangler innhold og rutine på sjekk av påfyll"},{"id":"KK1","sp":"Uniformen er brukt riktig (Mjøl t-skjorte, mørke bukser, tette sko).","kom":"Ikke t-skjorte, mangler nok til ansatte"},{"id":"KK11","sp":"Avdelingen har god kjennskap til aktiviteter og arrangementer i nærområdet/senteret.","kom":""},{"id":"PK2","sp":"Hansker brukes ved direkte håndtering av bakervarer og byttes mellom oppgaver.","kom":"Ikke alltid benyttet"},{"id":"ADM1","sp":"Kasseoppgjør.","kom":"Oppgjær registreres på kasse, ikke i liste"}],"month":"2026-08"},{"utsalg":"Sagene","dato":"18.08.2026","gjennomforer":"Sofie","planlagt":"Uanmeldt","score":79.48717948717949,"status":"Gult","avvikCount":14,"avvik":[{"id":"A3","sp":"De ansatte på jobb har fått tilstrekkelig opplæring.","kom":""},{"id":"U1","sp":"Det er rent og fritt for søppel utenfor (snus/sneiper tatt bort).","kom":"Snus/røyk rundt sitteområdet"},{"id":"I2","sp":"Det er ikke støv i utsalget.","kom":"Støv/skittent i diverse hyller"},{"id":"I10","sp":"Det er lys i alle taklamper.","kom":"Mangler pære"},{"id":"R1","sp":"Det er rent oppi skuffene og skap.","kom":"Skittent"},{"id":"DD1","sp":"Delivarehyllen og delivarer er tørket av for støv.","kom":"Lite varer og utgått på dato"},{"id":"DD3","sp":"Display-kjølen er ren og fylt opp.","kom":"Lite varer i kjølekap"},{"id":"B2","sp":"Kjøl/frys er ryddig og rene.","kom":"Skittent"},{"id":"RV3","sp":"De ansatte vet hvor de finner HMS opplæringen og opplæring er gitt alle ansatte.","kom":"Ikke tilstrekkelig opplæring og lite info om HMS"},{"id":"RV4","sp":"Temperatur på kjøl er tatt daglig ihht rutiner.","kom":"ikke fulgt opp"},{"id":"RV8","sp":"Filter på kjøledisk og ventilasjon er støvsugd.","kom":"Ikke vasket"},{"id":"KK3","sp":"Det er behagelig temperatur i utsalget og de ansatte opplært i ventilasjonsanlegget.","kom":"Rapportert avvik på alt for høy temperatur og dårlig ventilasjon"},{"id":"KK5","sp":"Det jobbes aktivt med mersalg.","kom":"Ikke registrert ved besøk"},{"id":"ADM1","sp":"Kasseoppgjør.","kom":"Mangler system og oppgjørsliste"}],"month":"2026-08"},{"utsalg":"Tøyen","dato":"18.08.2026","gjennomforer":"Sofie","planlagt":"Uanmeldt","score":97.47899159663865,"status":"Grønt","avvikCount":3,"avvik":[{"id":"B3","sp":"Personaltoalett og garderobe er ryddig og rene.","kom":"Ikke toalett eller garderobe tilgjenglig"},{"id":"RV3","sp":"De ansatte vet hvor de finner HMS opplæringen og opplæring er gitt alle ansatte.","kom":"Ansatte: Opplæring gitt, vet hvor HMS permen er men ikke kunnskap om den"},{"id":"KK3","sp":"Det er behagelig temperatur i utsalget og de ansatte opplært i ventilasjonsanlegget.","kom":"Ikke forsvarlig temperatur i sommervarme"}],"month":"2026-08"}];";
+  if (exported.includes(entriesMarker)) {
+    exported = exported.split(entriesMarker).join("let entries = " + entriesJson + ";");
+  } else {
+    // Fallback: finn og erstatt entries-linjen
+    const idx = exported.indexOf("let entries = ");
+    const end = exported.indexOf(";", idx);
+    exported = exported.substring(0, idx) + "let entries = " + entriesJson + exported.substring(end);
+  }
+  // Sett isAdmin til false
   const adminMarker = "const isAdmin = false;";
   exported = exported.split(adminMarker).join("const isAdmin = false;");
   const blob = new Blob([exported], { type: "text/html;charset=utf-8;" });
